@@ -30,15 +30,15 @@ class Dirs(object):
 		self.path = path if path else config['path']
 		self.baks = config['bak']
 		self.logs = config['log']
-		self.appid = config['appid']  # '1258680767'
+		self.appid = config['appid']
 		self.start = self.match_date(config['start'])
 		self.end = self.match_date(config['end'])
 		self.current_month = config['current_month']
 		self.count = config['count']
 		self.write_img_log = os.path.join(self.logs,time.strftime("%Y%m", time.localtime())+'_checked.log')
 		self.checked_lists = self.read_img()
-		self.secret_id = config['secret_id']  # 'AKIDK2VjIcegLq79vaCGG0XquibFjz0ncrw3'
-		self.secret_key = config['secret_key']  # 'xg9NNSdcLuELsAG9qIVVF2g4E9rPjnvu'
+		self.secret_id = config['secret_id']
+		self.secret_key = config['secret_key']
 		self.bucket = ''
 		self.create_dirs(self.baks)
 		self.create_dirs(self.logs)
