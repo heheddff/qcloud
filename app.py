@@ -14,6 +14,7 @@ import os
 import time
 import sys
 from config import config
+from weixin import WeiXin
 from qcloud_image import Client, CIFiles
 import re
 '''
@@ -35,10 +36,18 @@ class Dirs(object):
 		self.end = self.match_date(config['end'])
 		self.current_month = config['current_month']
 		self.count = config['count']
+		self.disable_date = config['disable_date']
 		self.write_img_log = os.path.join(self.logs,time.strftime("%Y%m", time.localtime())+'_checked.log')
 		self.checked_lists = self.read_img()
 		self.secret_id = config['secret_id']
 		self.secret_key = config['secret_key']
+		self.weixin = WeiXin(
+			corpid=config['weixin']['corpid'],
+			secrect=config['weixin']['secrect'],
+			agentid=config['weixin']['agentid'],
+			touser=config['weixin']['touser'],
+			product=config['product']
+		)
 		self.bucket = ''
 		self.create_dirs(self.baks)
 		self.create_dirs(self.logs)
@@ -161,6 +170,7 @@ class Dirs(object):
 				else:
 					self.cp_img(line['filename'])
 					self.cp_img(line['filename'].replace('/v/', '/'))
+					self.weixin.send(line['filename']+"\r\n")
 					mes = "{0} {1} {2}\r\n".format(t, '是', line)
 
 				f.write(mes)
@@ -171,6 +181,7 @@ class Dirs(object):
 	# 移动可疑图片
 	def cp_img(self, filename):
 		try:
+			t = time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime())
 			if os.path.isfile(filename) is False:
 				return False
 
@@ -179,8 +190,9 @@ class Dirs(object):
 			file = os.path.basename(filename)
 			des_file = os.path.join(des_dir, file)
 
-			if os.path.exists(des_file) is False:
-				os.rename(filename, des_file)
+			if os.path.exists(des_file) is True:
+				des_file = os.path.join(des_dir, t+'_'+file)
+			os.rename(filename, des_file)
 		except Exception as e:
 			print('cp_img error,', e, filename)
 			return False
@@ -306,26 +318,33 @@ class Dirs(object):
 
 	# 主程序
 	def main(self):
-		if self.current_month == 1:
-			year_months = [time.strftime("%Y%m", time.localtime())]
-		else:
-			year_months = self.get_start_end()
-			print(year_months)
-
-		if year_months is False or len(year_months) == 0:
-			return
-
-		for path in self.path:
-			for year_month in year_months:
-				self.log_name = os.path.join(self.logs, ''.join(year_month) + '.log')
-				if os.path.isdir(os.path.join(path,''.join(year_month))):
-					check_path = os.path.join(path, ''.join(year_month))
-				else:
-					check_path = os.path.join(path, '/'.join(year_month))
-				# print(check_path)
-
-				lists = self.walk_dir(check_path)
+		# self.weixin.send("\r\n".join(['test.jpg', 'demo.jpg']))
+		if self.disable_date == 1:
+			self.log_name = os.path.join(self.logs, ''.join(time.strftime("%Y%m", time.localtime())) + '.log')
+			for path in self.path:
+				lists = self.walk_dir(path)
 				self.check_img(lists)
+		else:
+
+			if self.current_month == 1:
+				year_months = [time.strftime("%Y%m", time.localtime())]
+			else:
+				year_months = self.get_start_end()
+				print(year_months)
+
+			if year_months is False or len(year_months) == 0:
+				return
+
+			for path in self.path:
+				for year_month in year_months:
+					self.log_name = os.path.join(self.logs, ''.join(year_month) + '.log')
+					if os.path.isdir(os.path.join(path,''.join(year_month))):
+						check_path = os.path.join(path, ''.join(year_month))
+					else:
+						check_path = os.path.join(path, '/'.join(year_month))
+					# print(check_path)
+					lists = self.walk_dir(check_path)
+					self.check_img(lists)
 
 
 dirs = Dirs()
