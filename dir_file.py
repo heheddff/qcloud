@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 
 
@@ -33,8 +36,7 @@ class DirFiles(object):
             if self.check_dir(path) is False:
                 os.makedirs(path)
                 print(path, 'is create')
-            else:
-                print(path, 'is exists')
+
         except Exception as e:
             print(e)
             return False
@@ -44,15 +46,18 @@ class DirFiles(object):
     # 获取待检测图片
     @staticmethod
     def walk_dir(dir_path):
-        lists = []
-        print("开始对以下目录进行检测:", dir_path)
+        try:
+            lists = []
+            print("开始对以下目录进行检测:", dir_path)
 
-        if os.path.isdir(dir_path):
-            for root, dirs, files in os.walk(dir_path, topdown=False):
-                for name in files:
-                    filename = os.path.join(root, name)
-                    lists.append(filename)
-            return lists
+            if os.path.isdir(dir_path):
+                for root, dirs, files in os.walk(dir_path, topdown=False):
+                    for name in files:
+                        filename = os.path.join(root, name)
+                        lists.append(filename)
+                return lists
+        except Exception as e:
+            print('walk_dir', e)
 
     @staticmethod
     def get_check_path(path, year_month):

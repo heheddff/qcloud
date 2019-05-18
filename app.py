@@ -35,7 +35,7 @@ class Dirs(object):
 		self.bak_path = config['bak']
 		self.log_path = config['log']
 		self.dir_files = DirFiles(self.bak_path)
-		self.logs = Logs(self.log_path)
+		self.logs = Logs(config['log'])
 		self.dir_files.create_dirs(self.log_path)
 
 		self.year_month = YearMonth(config['start'], config['end'])
@@ -44,11 +44,11 @@ class Dirs(object):
 		self.count = config['count']
 		self.disable_date = config['disable_date']
 		# log
-		self.write_img_log = self.dir_files.get_check_path(self.logs.log_path, self.year_month.create_date(status=1)+'_checked.log')
-		self.write_img_hot_log = self.dir_files.get_check_path(self.logs.log_path, 'hot.log')
+		self.check_log = self.dir_files.get_check_path(self.log_path, self.year_month.create_date(status=1)+'_checked.log')
+		self.hot_log = self.dir_files.get_check_path(self.log_path, 'hot.log')
 
-		self.checked_lists = self.logs.read_log(self.write_img_log) if self.dir_files.check_file(self.write_img_log) else []
-		self.hot_lists = self.logs.read_log(self.write_img_hot_log) if self.dir_files.check_file(self.write_img_hot_log) else []
+		self.checked_lists = self.logs.read_log(self.check_log) if self.dir_files.check_file(self.check_log) else []
+		self.hot_lists = self.logs.read_log(self.hot_log) if self.dir_files.check_file(self.hot_log) else []
 
 		# 鉴黄sdk
 		self.appid = config['appid']
@@ -68,14 +68,23 @@ class Dirs(object):
 	def filter_wait_check_img(self, path):
 		filename = self.dir_files.get_basename(path)
 		t = self.year_month.get_current_time()
+
 		if filename in self.hot_lists:
-			self.dir_files.cp_img(path,t)
+			self.dir_files.cp_img(path, t)
+			self.weixin.send(path + "\r\n")
 			return False
 
 		if filename not in self.checked_lists:
 			self.checked_lists.append(filename)
-			self.logs.write_log(self.write_img_log, filename)
+			self.logs.write_log(self.check_log, filename)
 			return True
+		else:
+			return False
+
+	def add_hot_img(self, filename):
+		if filename not in self.hot_lists:
+			self.hot_lists.append(filename)
+			# print(self.hot_lists)
 
 	# 开始图片鉴别
 	def check_img(self, lists=None):
@@ -89,8 +98,9 @@ class Dirs(object):
 		for j in range(1, num):
 			start = (j - 1) * self.count
 			end = j * self.count
+
 			wait_lists = list(filter(self.filter_wait_check_img, lists[start:end]))
-			print(wait_lists)
+			# print(wait_lists)
 			if len(wait_lists) == 0:
 				continue
 
@@ -110,12 +120,15 @@ class Dirs(object):
 					mes = "{0} {1} {2}".format(t, '否', line)
 				else:
 					mes = "{0} {1} {2}".format(t, '是', line)
+					self.weixin.send(line['filename'] + "\r\n")
+
 					self.dir_files.cp_img(line['filename'], t)
 					self.dir_files.cp_img(line['filename'].replace('/v/', '/'), t)
 
-					self.weixin.send(line['filename'] + "\r\n")
 					# 鉴别为黄图单独写入文件
-					self.logs.write_log(self.write_img_hot_log, self.dir_files.get_basename(line['filename']))
+					self.add_hot_img(self.dir_files.get_basename(line['filename']))
+
+					self.logs.write_log(self.hot_log, self.dir_files.get_basename(line['filename']))
 
 				self.logs.write_log(self.log_name, mes)
 		except Exception as e:
@@ -123,11 +136,9 @@ class Dirs(object):
 
 	# 主程序
 	def main(self):
-
 		if self.disable_date == 1:
 			current_year_month = self.year_month.create_date(status=1)
 			self.log_name = self.logs.create_log_name(current_year_month + '.log')
-			print(self.log_name)
 
 			for path in self.path:
 				lists = self.dir_files.walk_dir(path)
@@ -138,7 +149,6 @@ class Dirs(object):
 				year_months = [self.year_month.create_date()]
 			else:
 				year_months = self.year_month.get_start_end()
-				print(year_months)
 
 			if year_months is False or len(year_months) == 0:
 				return
@@ -146,15 +156,15 @@ class Dirs(object):
 			for path in self.path:
 				for year_month in year_months:
 					self.log_name = self.logs.create_log_name(''.join(year_month) + '.log')
+
 					check_path = self.dir_files.get_check_path(path,''.join(year_month))
 
 					if self.dir_files.check_dir(check_path) is False:
 						check_path = self.dir_files.get_check_path(path, '/'.join(year_month))
 
 					lists = self.dir_files.walk_dir(check_path)
-					#print(lists)
-					self.check_img(lists)
 
+					self.check_img(lists)
 
 dirs = Dirs()
 dirs.main()
