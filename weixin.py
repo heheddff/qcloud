@@ -1,11 +1,15 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from api.src.CorpApi import *
 
 
 class WeiXin(object):
 
-    def __init__(self, corpid, secrect, agentid, touser, product):
+    def __init__(self, corpid, secrect, agentid, touser, product,toparty):
         self.agentid = agentid
         self.touser = touser
+        self.toparty = toparty
         self.product = product
         self.api = CorpApi(corpid, secrect)
 
@@ -16,6 +20,7 @@ class WeiXin(object):
                 CORP_API_TYPE['MESSAGE_SEND'],
                 {
                     "touser": self.touser,
+                    "toparty": self.toparty,
                     "agentid": self.agentid,
                     'msgtype': 'text',
                     #'climsgid' : 'climsgidclimsgid_%f' % (random.random()),

@@ -62,7 +62,8 @@ class Dirs(object):
 			secrect=config['weixin']['secrect'],
 			agentid=config['weixin']['agentid'],
 			touser=config['weixin']['touser'],
-			product=config['product']
+			product=config['product'],
+			toparty=config['weixin']['toparty'],
 		)
 
 	def filter_wait_check_img(self, path):
